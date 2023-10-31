@@ -180,9 +180,8 @@ class PluginLooztickLooztick extends CommonDBTM
                                         method: 'POST',
                                         data: {
                                             id: $('#looztick_qrcode_dropdown').val()
-                                        }),
+                                        },
                                         success: function(data) {
-                                            console.log(data);
                                             $('#looztick_firstname').val(data.firstname);
                                             $('#looztick_lastname').val(data.lastname);
                                             $('#looztick_mobile').val(data.mobile);
