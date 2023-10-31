@@ -56,10 +56,11 @@ class PluginLooztickLooztick extends CommonDBTM
         return $config["api_key"];
     }
 
-    static protected function sendQuery(string $method = 'GET', string $uri = '/', array $data = []) {
+    static protected function sendQuery(string $method = 'GET', string $uri = '/', array $data = [])
+    {
         $apiKey = self::getApiKey();
         $result = [];
-        foreach(explode(',', $apiKey) as $key) {
+        foreach (explode(',', $apiKey) as $key) {
             $content = $data + ['key' => $key];
             $url = self::LOOZTIK_ENDPOINT . $uri;
             $opts = [
@@ -75,7 +76,7 @@ class PluginLooztickLooztick extends CommonDBTM
                 break;
             }
         }
-        
+
         return $result;
     }
 
@@ -109,7 +110,7 @@ class PluginLooztickLooztick extends CommonDBTM
         return $response['control'] == "ok";
     }
 
-    function showForm() : void
+    static function getQrCodes(): array
     {
         global $DB;
         $query = "SELECT * FROM glpi_plugin_looztick_loozticks";
@@ -117,7 +118,8 @@ class PluginLooztickLooztick extends CommonDBTM
         return iterator_to_array($result);
     }
 
-    function rawSearchOptions() {
+    function rawSearchOptions()
+    {
 
 
         $options = [
@@ -178,8 +180,9 @@ class PluginLooztickLooztick extends CommonDBTM
                                         method: 'POST',
                                         data: {
                                             id: $('#looztick_qrcode_dropdown').val()
-                                        },
+                                        }),
                                         success: function(data) {
+                                            console.log(data);
                                             $('#looztick_firstname').val(data.firstname);
                                             $('#looztick_lastname').val(data.lastname);
                                             $('#looztick_mobile').val(data.mobile);
