@@ -35,14 +35,21 @@ require_once("../inc/config.class.php");
 $plugin = new Plugin();
 
 if($plugin->isActivated("looztick")) {
-    $config = new PluginLooztickLooztick();
-    if(isset($_POST["api_key"]) || isset($_POST["prompt"])) {
-        Session::checkRight("config", UPDATE);
-
+    $looztick = new PluginLooztickLooztick();
+    if ($looztick->testApiConnection()) {
+        Html::header("Looztick", $_SERVER["PHP_SELF"], "config", "plugins");
+        if(isset($_POST["api_key"]) || isset($_POST["prompt"])) {
+            Session::checkRight("config", UPDATE);
+    
+        }
+        Search::show("PluginLooztickLooztick", []);
+    } else {
+        Html::header("settings", '', "config", "plugins");
+        echo "<div class='center'><br><br><img src=\"".$CFG_GLPI["root_doc"]."/pics/warning.png\" alt='warning'><br><br>";
+        echo "<b>Could not connect to Looztick API</b></div>";
+        Html::footer();
     }
 
-    Html::header("Looztick", $_SERVER["PHP_SELF"], "config", "plugins");
-    $config->showForm();
 } else {
     Html::header("settings", '', "config", "plugins");
     echo "<div class='center'><br><br><img src=\"".$CFG_GLPI["root_doc"]."/pics/warning.png\" alt='warning'><br><br>";

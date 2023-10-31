@@ -56,6 +56,24 @@ function plugin_looztick_install() {
         $DB->queryOrDie($createQuery, $DB->error());
         $DB->queryOrDie($insertQuery, $DB->error());
     }
+    if (!$DB->tableExists("glpi_plugin_looztick_loozticks")) {        
+        $createQuery = <<<SQL
+            CREATE TABLE glpi_plugin_looztick_loozticks (
+                id int(11) NOT NULL AUTO_INCREMENT,
+                qrcode varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                itemtype varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                itemid varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                PRIMARY KEY (`id`)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+        SQL;
+        $DB->queryOrDie($createQuery, $DB->error());
+
+        for ($i = 2; $i <= 5; $i++) {
+            $DB->query("REPLACE INTO glpi_displaypreferences VALUES
+               (NULL, 'PluginLooztickLooztick', $i, ".($i-1).", 0)");
+         }
+
+    }
     return true;
 }
 
@@ -66,6 +84,11 @@ function plugin_looztick_uninstall() {
     if($DB->tableExists('glpi_plugin_looztick_config')) {
         $DB->queryOrDie("DROP TABLE `glpi_plugin_looztick_config`",$DB->error());
     }
+    if($DB->tableExists('glpi_plugin_looztick_loozticks')) {
+        $DB->queryOrDie("DROP TABLE `glpi_plugin_looztick_loozticks`",$DB->error());
+        $DB->queryOrDie("DELETE FROM `glpi_displaypreferences` WHERE `itemtype` = 'PluginLooztickLooztick'",$DB->error());
+    }
+
 
 
     return true;

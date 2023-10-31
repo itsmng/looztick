@@ -38,10 +38,11 @@ if($plugin->isActivated("looztick")) {
     $config = new PluginLooztickConfig();
     if(isset($_POST["api_key"])) {
         Session::checkRight("config", UPDATE);
+
+        
         global $DB;
         $query = <<<SQL
-        UPDATE glpi_plugin_looztick_config
-            SET
+        UPDATE glpi_plugin_looztick_config SET
             api_key = '{$_POST["api_key"]}',
             firstname = '{$_POST["firstname"]}',
             lastname = '{$_POST["lastname"]}',
@@ -52,6 +53,11 @@ if($plugin->isActivated("looztick")) {
         WHERE id = 1
         SQL;
         $DB->request($query);
+        
+        if (!PluginLooztickLooztick::testApiConnection()) {
+            Session::addMessageAfterRedirect("API key is invalid", false, ERROR);
+            Html::back();
+        }
     }
 
     Html::header("Looztick", $_SERVER["PHP_SELF"], "config", "plugins");

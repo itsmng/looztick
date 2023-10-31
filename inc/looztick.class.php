@@ -58,23 +58,30 @@ class PluginLooztickLooztick extends CommonDBTM
 
     static protected function sendQuery(string $method = 'GET', string $uri = '/', array $data = []) {
         $apiKey = self::getApiKey();
-        $content = $data + ['key' => $apiKey];
-        $url = self::LOOZTIK_ENDPOINT . $uri;
-        $opts = [
-            'http' => [
-                'method' => $method,
-                'header' => 'Content-Type: application/json',
-                'content' => json_encode($content)
-            ]
-        ];
-        $context = stream_context_create($opts);
-        $result = file_get_contents($url, false, $context);
-        return json_decode($result, true);
+        $result = [];
+        foreach(explode(',', $apiKey) as $key) {
+            $content = $data + ['key' => $key];
+            $url = self::LOOZTIK_ENDPOINT . $uri;
+            $opts = [
+                'http' => [
+                    'method' => $method,
+                    'header' => 'Content-Type: application/json',
+                    'content' => json_encode($content)
+                ]
+            ];
+            $context = stream_context_create($opts);
+            $result = array_merge($result, json_decode(file_get_contents($url, false, $context), true));
+            if ($result['control'] != "ok") {
+                break;
+            }
+        }
+        
+        return $result;
     }
 
-    function testApiConnection(): bool
+    static function testApiConnection(): bool
     {
-        $response = $this::sendQuery("POST");
+        $response = PluginLooztickLooztick::sendQuery("POST");
         return $response['control'] == "ok";
     }
 
@@ -84,5 +91,33 @@ class PluginLooztickLooztick extends CommonDBTM
             echo "Connected to : ". $this::LOOZTIK_ENDPOINT . "<br>";
             echo var_dump($this->sendQuery('POST', '/qrcodes/'));
         }
+    }
+
+    function rawSearchOptions() {
+
+        $tab = [];
+
+        $tab[] = [
+           'id'            => 1,
+           'table'         => self::getTable(),
+           'field'         => 'qrcode',
+           'name'          => __("QR Code"),
+        ];
+  
+        $tab[] = [
+            'id'            => 2,
+            'table'         => self::getTable(),
+            'field'         => 'itemtype',
+            'name'          => __("Item type"),
+        ];
+
+        $tab[] = [
+            'id'            => 3,
+            'table'         => self::getTable(),
+            'field'         => 'itemid',
+            'name'          => __("Item Id"),
+        ];
+  
+        return $tab;
     }
 }
