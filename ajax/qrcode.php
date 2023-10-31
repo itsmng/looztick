@@ -52,7 +52,14 @@ if (isset($_POST['id'])) {
             'id' => $_POST['id']
         ]
     ]);
-    echo json_encode(iterator_to_array($result)[$_POST['id']]);
+    $code = iterator_to_array($result)[$_POST['id']];
+    $config = PluginLooztickLooztick::getConfig();
+    foreach($code as $key => $value) {
+        if ($value == '') {
+            $code[$key] = $config[$key];
+        };
+    }
+    echo json_encode($code);
 } else {
     echo json_encode([]);
 }

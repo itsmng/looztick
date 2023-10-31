@@ -46,19 +46,19 @@ class PluginLooztickLooztick extends CommonDBTM
         return $menu;
     }
 
-    static protected function getApiKey(): string
+    static function getConfig(): array
     {
         global $DB;
 
-        $query = "SELECT api_key FROM glpi_plugin_looztick_config WHERE id = 1";
+        $query = "SELECT * FROM glpi_plugin_looztick_config WHERE id = 1";
         $result = $DB->query($query);
         $config = iterator_to_array($result)[0];
-        return $config["api_key"];
+        return $config;
     }
 
     static protected function sendQuery(string $method = 'GET', string $uri = '/', array $data = [])
     {
-        $apiKey = self::getApiKey();
+        $apiKey = self::getConfig()['api_key'] ?? '';
         $result = [];
         foreach (explode(',', $apiKey) as $key) {
             $content = $data + ['key' => $key];
