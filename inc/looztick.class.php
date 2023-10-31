@@ -56,7 +56,7 @@ class PluginLooztickLooztick extends CommonDBTM
         return $config;
     }
 
-    static protected function sendQuery(string $method = 'GET', string $uri = '/', array $data = [])
+    static function sendQuery(string $method = 'GET', string $uri = '/', array $data = [])
     {
         $apiKey = self::getConfig()['api_key'] ?? '';
         $result = [];
@@ -90,19 +90,18 @@ class PluginLooztickLooztick extends CommonDBTM
         }
 
         $query = "INSERT IGNORE INTO `$table` 
-                  (id, itemtype, itemid, firstname, lastname, mobile, friendmobile, countrycode, email) 
+                  (id, item, firstname, lastname, mobile, friendmobile, countrycode, email) 
                   VALUES ";
 
         $values = array();
 
         foreach ($qrcodes['qrcodes'] as $qrcode) {
-            $values[] = "('{$qrcode['id']}', '', '', '{$qrcode['firstname']}', '{$qrcode['lastname']}', '{$qrcode['mobile']}', '{$qrcode['friendmobile']}', '{$qrcode['countrycode']}', '{$qrcode['email']}')";
+            $values[] = "('{$qrcode['id']}', '', '{$qrcode['firstname']}', '{$qrcode['lastname']}', '{$qrcode['mobile']}', '{$qrcode['friendmobile']}', '{$qrcode['countrycode']}', '{$qrcode['email']}')";
         }
 
         $query .= implode(', ', $values) . ";";
         $DB->query($query);
     }
-
 
     static function testApiConnection(): bool
     {
@@ -118,33 +117,96 @@ class PluginLooztickLooztick extends CommonDBTM
         return iterator_to_array($result);
     }
 
-    function rawSearchOptions()
+    function showForm()
     {
+        global $DB;
 
-
-        $options = [
-            __("QR Code") => 'id',
-            __("Item type") => 'itemtype',
-            __("Item Id") => 'itemid',
-            __("First name") => 'firstname',
-            __("Last name") => 'lastname',
-            __("Mobile") => 'mobile',
-            __("Friend mobile") => 'friendmobile',
-            __("Country code") => 'countrycode',
-            __("Email") => 'email',
+        $api_key_label = __("API Key");
+        $form_action = Plugin::getWebDir("looztick")."/front/config.form.php";
+        
+        $defaultValues = [
+            'First name' => 'firstname',
+            'Last name' => 'lastname',
+            'Mobile' => 'mobile',
+            'Second mobile' => 'friendmobile',
+            'Country code' => 'countrycode',
+            'Email' => 'email',
         ];
 
-        $tab = [];
-        $i = 1;
-        foreach ($options as $key => $value) {
-            $tab[] = [
-                'id' => $i,
-                'table' => self::getTable(),
-                'name' => $key,
-                'field' => $value,
-            ];
-            $i++;
+        $form = [
+            'action' => $form_action,
+            'submit' => __('Save'),
+            'content' => [
+                'Looztick QR Code' => [
+                    'visible' => true,
+                    'inputs' => [
+                        'Code' => [
+                            'type' => 'text',
+                            'value' => $this->fields['id'],
+                            'name' => 'api_key',
+                            'disabled' => true,
+                        ],
+                    ]
+                ] 
+            ]
+        ];
+        foreach ($defaultValues as $label => $name) {
+            $form['content']['Looztick QR Code']['inputs'] += [ $label => [
+                'type' => 'text',
+                'value' => $this->fields[$name],
+                'name' => $name,
+            ]];
         }
+        include_once GLPI_ROOT . '/ng/form.utils.php';
+        renderTwigForm($form);
+    }
+
+    function rawSearchOptions()
+    {
+        $tab = [];
+        $tab[] = [
+            'id' => 1,
+            'table' => self::getTable(),
+            'name' => __("QR Code"),
+            'field' => 'id',
+            'datatype' => 'itemlink'
+        ];
+        $tab[] = [
+            'id' => 2,
+            'table' => self::getTable(),
+            'name' => __("First name"),
+            'field' => 'firstname',
+        ];
+        $tab[] = [
+            'id' => 3,
+            'table' => self::getTable(),
+            'name' => __("Last name"),
+            'field' => 'lastname',
+        ];
+        $tab[] = [
+            'id' => 4,
+            'table' => self::getTable(),
+            'name' => __("Mobile"),
+            'field' => 'mobile',
+        ];
+        $tab[] = [
+            'id' => 5,
+            'table' => self::getTable(),
+            'name' => __("Friend mobile"),
+            'field' => 'friendmobile',
+        ];
+        $tab[] = [
+            'id' => 6,
+            'table' => self::getTable(),
+            'name' => __("Country code"),
+            'field' => 'countrycode',
+        ];
+        $tab[] = [
+            'id' => 7,
+            'table' => self::getTable(),
+            'name' => __("Email"),
+            'field' => 'email',
+        ];
         return $tab;
     }
 
@@ -157,12 +219,13 @@ class PluginLooztickLooztick extends CommonDBTM
     {
         $qrcodes = self::getQrCodes();
         $currentQrcode = array_filter($qrcodes, function ($qrcode) use ($item) {
-            return $qrcode['itemtype'] == $item->getType() && $qrcode['itemid'] == $item->getID();
+            return $qrcode['item'] == $item->getType(). '_' .$item->getID();
         });
         $qrcodeAjaxEndpoint = Plugin::getWebDir('looztick') . '/ajax/qrcode.php';
 
         $form = [
-            'action' => 'looztick.form.php',
+            'action' => Plugin::getWebDir('looztick') . '/front/looztick.form.php',
+            'submit' => 'Save',
             'content' => [
                 '' => [
                     'visible' => true,
@@ -228,6 +291,16 @@ class PluginLooztickLooztick extends CommonDBTM
                             'id' => 'looztick_email',
                             'type' => 'text',
                             'value' => array_values($currentQrcode)[0]['email'] ?? null,
+                        ],
+                        'action' => [
+                            'name' => 'action',
+                            'type' => 'hidden',
+                            'value' => 'update',
+                        ],
+                        'item' => [
+                            'name' => 'item',
+                            'type' => 'hidden',
+                            'value' => $item->getType(). '_' . $item->getID(),
                         ],
                     ]
                 ]

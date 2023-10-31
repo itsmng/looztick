@@ -60,8 +60,7 @@ function plugin_looztick_install() {
         $createQuery = <<<SQL
             CREATE TABLE glpi_plugin_looztick_loozticks (
                 id varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-                itemtype varchar(255) COLLATE utf8_unicode_ci NOT NULL,
-                itemid varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                item varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 firstname varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 lastname varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 mobile varchar(255) COLLATE utf8_unicode_ci NOT NULL,
@@ -79,6 +78,22 @@ function plugin_looztick_install() {
         }
 
     }
+    if (!$DB->tableExists("glpi_plugin_looztick_profiles")) {
+        $query2 = "CREATE TABLE `glpi_plugin_looztick_profiles` (
+        `id` int(11) NOT NULL default '0',
+        `right` char(1) collate utf8_unicode_ci default NULL,
+        PRIMARY KEY  (`id`)
+          ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci";
+    
+        $DB->queryOrDie($query2, $DB->error());
+    
+        include_once(GLPI_ROOT . "/plugins/looztick/inc/profile.class.php");
+        PluginLooztickProfile::createAdminAccess($_SESSION['glpiactiveprofile']['id']);
+    
+        foreach (PluginLooztickProfile::getRightsGeneral() as $right) {
+            PluginLooztickProfile::addDefaultProfileInfos($_SESSION['glpiactiveprofile']['id'], [$right['field'] => $right['default']]);
+        }
+    } else $DB->queryOrDie("ALTER TABLE `glpi_plugin_looztick_profiles` ENGINE = InnoDB", $DB->error());
     return true;
 }
 
@@ -93,8 +108,12 @@ function plugin_looztick_uninstall() {
         $DB->queryOrDie("DROP TABLE `glpi_plugin_looztick_loozticks`",$DB->error());
         $DB->queryOrDie("DELETE FROM `glpi_displaypreferences` WHERE `itemtype` = 'PluginLooztickLooztick'",$DB->error());
     }
-
-
+    foreach (PluginLooztickProfile::getRightsGeneral() as $right) {
+        $query = "DELETE FROM `glpi_profilerights` WHERE `name` = '" . $right['field'] . "'";
+        $DB->query($query);
+    
+        if (isset($_SESSION['glpiactiveprofile'][$right['field']])) unset($_SESSION['glpiactiveprofile'][$right['field']]);
+      }
 
     return true;
 }

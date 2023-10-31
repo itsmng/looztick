@@ -36,7 +36,7 @@
  * 
  * @return string
  */
-function renderTwigForm($form, $additionnalHtml = "", $colAmount = 2)
+function renderForm($form, $additionnalHtml = "", $colAmount = 2)
 {
     $options = ['actions', 'after', 'before', 'hooks'];
     $token = Session::getNewCSRFToken();
@@ -65,7 +65,7 @@ function renderTwigForm($form, $additionnalHtml = "", $colAmount = 2)
     }
     echo <<<HTML
         <input type="hidden" name="_glpi_csrf_token" value="$token"/>
-        <button class="btn btn-warning">Submit</button>
+        <button class="btn btn-warning">{$form['submit']}</button>
         </form>
     HTML;
     echo "<script>";

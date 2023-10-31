@@ -36,13 +36,49 @@ $plugin = new Plugin();
 
 if($plugin->isActivated("looztick")) {
     $looztick = new PluginLooztickLooztick();
-    if ($looztick->testApiConnection()) {
-        Html::header("Looztick", $_SERVER["PHP_SELF"], "config", "plugins");
-        if(isset($_POST["api_key"]) || isset($_POST["prompt"])) {
-            Session::checkRight("config", UPDATE);
+    if (isset($_POST['action']) && isset($_POST['qrcode'])) {
+        global $DB;
+        $table = PluginLooztickLooztick::getTable();
     
+        $query = <<<SQL
+        UPDATE $table SET
+            item = "{$_POST['item']}",
+            firstname = "{$_POST['firstname']}",
+            lastname = "{$_POST['lastname']}",
+            mobile = "{$_POST['mobile']}",
+            friendmobile = "{$_POST['friendmobile']}",
+            countrycode = "{$_POST['countrycode']}",
+            email = "{$_POST['email']}"
+        WHERE id = "{$_POST['qrcode']}"
+        SQL;
+        $DB->request($query);
+        PluginLooztickLooztick::sendQuery('POST', '/update/', [
+            'qrcode' => $_POST['qrcode'],
+            'firstname' => $_POST['firstname'],
+            'lastname' => $_POST['lastname'],
+            'mobile' => $_POST['mobile'],
+            'friendmobile' => $_POST['friendmobile'],
+            'countrycode' => $_POST['countrycode'],
+            'email' => $_POST['email'],
+            'client_id' => $_POST['item'],
+            'activate' => 1,
+
+        ]);
+        Session::addMessageAfterRedirect(__('Successful update'), true, INFO);
+        Html::back();
+        return;
+    }
+    
+    if ($looztick->testApiConnection()) {
+        Html::header("Looztick", $_SERVER["PHP_SELF"], "tools");
+        if (isset($_GET["id"])) {
+            $looztick->display([
+                'id'           => $_GET["id"],
+                'withtemplate' => '',
+            ]);
+        } else {
+            Search::show("PluginLooztickLooztick");
         }
-        Search::show("PluginLooztickLooztick", []);
     } else {
         Html::header("settings", '', "config", "plugins");
         echo "<div class='center'><br><br><img src=\"".$CFG_GLPI["root_doc"]."/pics/warning.png\" alt='warning'><br><br>";

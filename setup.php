@@ -69,6 +69,7 @@ function plugin_init_looztick() {
     global $PLUGIN_HOOKS;
 
     $PLUGIN_HOOKS['csrf_compliant']['looztick'] = true;
+    $PLUGIN_HOOKS['change_profile']['exampleplugin'] = ['PluginExamplePluginProfile','initProfile'];
     $PLUGIN_HOOKS['menu_toadd']['looztick'] = array('tools' => 'PluginLooztickLooztick');
 
     Plugin::registerClass('PluginLooztickLooztick', [

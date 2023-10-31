@@ -54,6 +54,7 @@ class PluginLooztickConfig extends CommonDBTM {
 
         $form = [
             'action' => $form_action,
+            'submit' => __('Save'),
             'content' => [
                 'Configuration' => [
                     'visible' => true,
@@ -80,7 +81,7 @@ class PluginLooztickConfig extends CommonDBTM {
             ]];
         }
         include_once PLUGIN::getPhpDir('looztick') . "/inc/form.utils.php";
-        renderTwigForm($form);
+        renderForm($form);
     }
 
     public function updateConfig() {
