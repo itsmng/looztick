@@ -79,6 +79,30 @@ class PluginLooztickLooztick extends CommonDBTM
         return $result;
     }
 
+    static function updateQrCodes()
+    {
+        global $DB;
+        $qrcodes = self::sendQuery('GET', '/qrcodes/');
+        $table = self::getTable();
+        if (!isset($qrcodes['qrcodes']) || count($qrcodes['qrcodes']) == 0) {
+            return;
+        }
+
+        $query = "INSERT IGNORE INTO `$table` 
+                  (id, itemtype, itemid, firstname, lastname, mobile, friendmobile, countrycode, email) 
+                  VALUES ";
+
+        $values = array();
+
+        foreach ($qrcodes['qrcodes'] as $qrcode) {
+            $values[] = "('{$qrcode['id']}', '', '', '{$qrcode['firstname']}', '{$qrcode['lastname']}', '{$qrcode['mobile']}', '{$qrcode['friendmobile']}', '{$qrcode['countrycode']}', '{$qrcode['email']}')";
+        }
+
+        $query .= implode(', ', $values) . ";";
+        $DB->query($query);
+    }
+
+
     static function testApiConnection(): bool
     {
         $response = PluginLooztickLooztick::sendQuery("POST");
@@ -87,37 +111,127 @@ class PluginLooztickLooztick extends CommonDBTM
 
     function showForm() : void
     {
-        if ($this->testApiConnection()) {
-            echo "Connected to : ". $this::LOOZTIK_ENDPOINT . "<br>";
-            echo var_dump($this->sendQuery('POST', '/qrcodes/'));
-        }
+        global $DB;
+        $query = "SELECT * FROM glpi_plugin_looztick_loozticks";
+        $result = $DB->query($query);
+        return iterator_to_array($result);
     }
 
     function rawSearchOptions() {
 
+
+        $options = [
+            __("QR Code") => 'id',
+            __("Item type") => 'itemtype',
+            __("Item Id") => 'itemid',
+            __("First name") => 'firstname',
+            __("Last name") => 'lastname',
+            __("Mobile") => 'mobile',
+            __("Friend mobile") => 'friendmobile',
+            __("Country code") => 'countrycode',
+            __("Email") => 'email',
+        ];
+
         $tab = [];
-
-        $tab[] = [
-           'id'            => 1,
-           'table'         => self::getTable(),
-           'field'         => 'qrcode',
-           'name'          => __("QR Code"),
-        ];
-  
-        $tab[] = [
-            'id'            => 2,
-            'table'         => self::getTable(),
-            'field'         => 'itemtype',
-            'name'          => __("Item type"),
-        ];
-
-        $tab[] = [
-            'id'            => 3,
-            'table'         => self::getTable(),
-            'field'         => 'itemid',
-            'name'          => __("Item Id"),
-        ];
-  
+        $i = 1;
+        foreach ($options as $key => $value) {
+            $tab[] = [
+                'id' => $i,
+                'table' => self::getTable(),
+                'name' => $key,
+                'field' => $value,
+            ];
+            $i++;
+        }
         return $tab;
+    }
+
+    function getTabNameForItem(CommonGLPI $item, $withtemplate = 0)
+    {
+        return "Looztick";
+    }
+
+    static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0)
+    {
+        $qrcodes = self::getQrCodes();
+        $currentQrcode = array_filter($qrcodes, function ($qrcode) use ($item) {
+            return $qrcode['itemtype'] == $item->getType() && $qrcode['itemid'] == $item->getID();
+        });
+        $qrcodeAjaxEndpoint = Plugin::getWebDir('looztick') . '/ajax/qrcode.php';
+
+        $form = [
+            'action' => 'looztick.form.php',
+            'content' => [
+                '' => [
+                    'visible' => true,
+                    'inputs' => [
+                        "QR code" => [
+                            'name' => 'qrcode',
+                            'id' => 'looztick_qrcode_dropdown',
+                            'type' => 'select',
+                            'values' => array_column($qrcodes, 'id', 'id'),
+                            'value' => array_values($currentQrcode)[0]['id'] ?? null,
+                            'hooks' => [
+                                'change' => <<<JS
+                                    $.ajax({
+                                        url: '{$qrcodeAjaxEndpoint}',
+                                        method: 'POST',
+                                        data: {
+                                            id: $('#looztick_qrcode_dropdown').val()
+                                        },
+                                        success: function(data) {
+                                            $('#looztick_firstname').val(data.firstname);
+                                            $('#looztick_lastname').val(data.lastname);
+                                            $('#looztick_mobile').val(data.mobile);
+                                            $('#looztick_friendmobile').val(data.friendmobile);
+                                            $('#looztick_countrycode').val(data.countrycode);
+                                            $('#looztick_email').val(data.email);
+                                        }
+                                    });
+                                JS,
+                            ]
+                        ],
+                        "First name" => [
+                            'name' => 'firstname',
+                            'id' => 'looztick_firstname',
+                            'type' => 'text',
+                            'value' => array_values($currentQrcode)[0]['firstname'] ?? null,
+                        ],
+                        "Last name" => [
+                            'name' => 'lastname',
+                            'id' => 'looztick_lastname',
+                            'type' => 'text',
+                            'value' => array_values($currentQrcode)[0]['lastname'] ?? null,
+                        ],
+                        "Mobile" => [
+                            'name' => 'mobile',
+                            'id' => 'looztick_mobile',
+                            'type' => 'text',
+                            'value' => array_values($currentQrcode)[0]['mobile'] ?? null,
+                        ],
+                        "Friend mobile" => [
+                            'name' => 'friendmobile',
+                            'id' => 'looztick_friendmobile',
+                            'type' => 'text',
+                            'value' => array_values($currentQrcode)[0]['friendmobile'] ?? null,
+                        ],
+                        "Country code" => [
+                            'name' => 'countrycode',
+                            'id' => 'looztick_countrycode',
+                            'type' => 'text',
+                            'value' => array_values($currentQrcode)[0]['countrycode'] ?? null,
+                        ],
+                        "Email" => [
+                            'name' => 'email',
+                            'id' => 'looztick_email',
+                            'type' => 'text',
+                            'value' => array_values($currentQrcode)[0]['email'] ?? null,
+                        ],
+                    ]
+                ]
+            ]
+        ];
+        renderTwigForm($form);
+        return true;
     }
 }

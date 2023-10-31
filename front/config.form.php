@@ -54,6 +54,7 @@ if($plugin->isActivated("looztick")) {
         SQL;
         $DB->request($query);
         
+        PluginLooztickLooztick::updateQrCodes();
         if (!PluginLooztickLooztick::testApiConnection()) {
             Session::addMessageAfterRedirect("API key is invalid", false, ERROR);
             Html::back();

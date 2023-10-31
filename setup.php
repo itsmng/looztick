@@ -70,6 +70,21 @@ function plugin_init_looztick() {
 
     $PLUGIN_HOOKS['csrf_compliant']['looztick'] = true;
     $PLUGIN_HOOKS['menu_toadd']['looztick'] = array('tools' => 'PluginLooztickLooztick');
+
+    Plugin::registerClass('PluginLooztickLooztick', [
+        'addtabon' => [
+            'Computer',
+            'Monitor',
+            'Peripheral',
+            'Phone',
+            'NetworkEquipment',
+            'Printer',
+            'Rack',
+            'Enclosure',
+            'PDU',
+            'PassiveDCEquipment'
+        ]
+    ]);
     if (Session::haveRight("profile", UPDATE)) {
         $PLUGIN_HOOKS['config_page']['looztick'] = 'front/config.form.php';
     }

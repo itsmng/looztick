@@ -59,19 +59,24 @@ function plugin_looztick_install() {
     if (!$DB->tableExists("glpi_plugin_looztick_loozticks")) {        
         $createQuery = <<<SQL
             CREATE TABLE glpi_plugin_looztick_loozticks (
-                id int(11) NOT NULL AUTO_INCREMENT,
-                qrcode varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                id varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 itemtype varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 itemid varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                firstname varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                lastname varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                mobile varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                friendmobile varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                countrycode varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                email varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 PRIMARY KEY (`id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
         SQL;
         $DB->queryOrDie($createQuery, $DB->error());
 
-        for ($i = 2; $i <= 5; $i++) {
+        for ($i = 2; $i <= 9; $i++) {
             $DB->query("REPLACE INTO glpi_displaypreferences VALUES
                (NULL, 'PluginLooztickLooztick', $i, ".($i-1).", 0)");
-         }
+        }
 
     }
     return true;
