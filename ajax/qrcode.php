@@ -36,30 +36,37 @@ Session::checkLoginUser();
 
 header('Content-Type: application/json; charset=utf-8');
 if (isset($_POST['id'])) {
-    global $DB;
-    $result = $DB->request([
-        'SELECT' => [
-            'id',
-            'firstname',
-            'lastname',
-            'mobile',
-            'friendmobile',
-            'countrycode',
-            'email'
-        ],
-        'FROM' => PluginLooztickLooztick::getTable(),
-        'WHERE' => [
-            'id' => $_POST['id']
-        ]
-    ]);
-    $code = iterator_to_array($result)[$_POST['id']];
-    $config = PluginLooztickLooztick::getConfig();
-    foreach($code as $key => $value) {
-        if ($value == '') {
-            $code[$key] = $config[$key];
-        };
+    if (isset($_POST['action'])) {
+        if ($_POST['action'] == 'unlink') {
+            $result = PluginLooztickLooztick::unlink($_POST['id']);
+        }
+    } else {
+
+        global $DB;
+        $result = $DB->request([
+            'SELECT' => [
+                'id',
+                'firstname',
+                'lastname',
+                'mobile',
+                'friendmobile',
+                'countrycode',
+                'email'
+            ],
+            'FROM' => PluginLooztickLooztick::getTable(),
+            'WHERE' => [
+                'id' => $_POST['id'],
+            ]
+        ]);
+        $code = iterator_to_array($result)[$_POST['id']];
+        $config = PluginLooztickLooztick::getConfig();
+        foreach($code as $key => $value) {
+            if ($value == '') {
+                $code[$key] = $config[$key];
+            };
+        }
+        echo json_encode($code);
     }
-    echo json_encode($code);
 } else {
     echo json_encode([]);
 }

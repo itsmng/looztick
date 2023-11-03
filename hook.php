@@ -61,6 +61,7 @@ function plugin_looztick_install() {
             CREATE TABLE glpi_plugin_looztick_loozticks (
                 id varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 item varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                activated tinyint(1) COLLATE utf8_unicode_ci NOT NULL,
                 firstname varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 lastname varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 mobile varchar(255) COLLATE utf8_unicode_ci NOT NULL,

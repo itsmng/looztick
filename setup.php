@@ -68,10 +68,7 @@ function plugin_looztick_check_config() {
 function plugin_init_looztick() {
     global $PLUGIN_HOOKS;
 
-    $PLUGIN_HOOKS['csrf_compliant']['looztick'] = true;
-    $PLUGIN_HOOKS['change_profile']['exampleplugin'] = ['PluginExamplePluginProfile','initProfile'];
-    $PLUGIN_HOOKS['menu_toadd']['looztick'] = array('tools' => 'PluginLooztickLooztick');
-
+    Plugin::registerClass('PluginLooztickProfile', ['addtabon' => ['Profile']]);
     Plugin::registerClass('PluginLooztickLooztick', [
         'addtabon' => [
             'Computer',
@@ -86,6 +83,12 @@ function plugin_init_looztick() {
             'PassiveDCEquipment'
         ]
     ]);
+    
+    $PLUGIN_HOOKS['csrf_compliant']['looztick'] = true;
+    $PLUGIN_HOOKS['change_profile']['looztick'] = ['PluginLooztickProfile','initProfile'];
+    if (Session::haveRight("plugin_looztick_looztick", READ)) {
+        $PLUGIN_HOOKS['menu_toadd']['looztick'] = array('tools' => 'PluginLooztickLooztick');
+    }
     if (Session::haveRight("profile", UPDATE)) {
         $PLUGIN_HOOKS['config_page']['looztick'] = 'front/config.form.php';
     }

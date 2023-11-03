@@ -34,6 +34,7 @@
 class PluginLooztickLooztick extends CommonDBTM
 {
     const LOOZTIK_ENDPOINT = "https://looztick.fr/api";
+    static $rightname = "plugin_looztick_looztick";
 
     static function getMenuContent(): array
     {
@@ -90,13 +91,13 @@ class PluginLooztickLooztick extends CommonDBTM
         }
 
         $query = "INSERT IGNORE INTO `$table` 
-                  (id, item, firstname, lastname, mobile, friendmobile, countrycode, email) 
+                  (id, item, firstname, lastname, mobile, friendmobile, countrycode, email, activated) 
                   VALUES ";
 
         $values = array();
 
         foreach ($qrcodes['qrcodes'] as $qrcode) {
-            $values[] = "('{$qrcode['id']}', '', '{$qrcode['firstname']}', '{$qrcode['lastname']}', '{$qrcode['mobile']}', '{$qrcode['friendmobile']}', '{$qrcode['countrycode']}', '{$qrcode['email']}')";
+            $values[] = "('{$qrcode['id']}', '', '{$qrcode['firstname']}', '{$qrcode['lastname']}', '{$qrcode['mobile']}', '{$qrcode['friendmobile']}', '{$qrcode['countrycode']}', '{$qrcode['email']}', '{$qrcode['activated']}')";
         }
 
         $query .= implode(', ', $values) . ";";
@@ -117,12 +118,21 @@ class PluginLooztickLooztick extends CommonDBTM
         return iterator_to_array($result);
     }
 
+    static function unlink(): bool
+    {
+        global $DB;
+        $query = "UPDATE glpi_plugin_looztick_loozticks SET item = '', activated = 0 WHERE id = {$_POST['id']}";
+        $DB->query($query);
+        self::sendQuery('POST', '/update/', ['qrcode' => $_POST['id'], 'activated' => 0]);
+        return true;
+    }
+
     function showForm()
     {
         global $DB;
 
         $api_key_label = __("API Key");
-        $form_action = Plugin::getWebDir("looztick")."/front/config.form.php";
+        $form_action = Plugin::getWebDir("looztick")."/front/looztick.form.php?id=".$this->fields["id"];
         
         $defaultValues = [
             'First name' => 'firstname',
@@ -140,6 +150,17 @@ class PluginLooztickLooztick extends CommonDBTM
                 'Looztick QR Code' => [
                     'visible' => true,
                     'inputs' => [
+                        'action' => [
+                            'name' => 'action',
+                            'type' => 'hidden',
+                            'value' => 'update',
+                        ],
+                        'Activated' => [
+                            'type' => 'checkbox',
+                            'value' => $this->fields['activated'],
+                            'name' => 'activated',
+                            'disabled' => true,
+                        ],
                         'Code' => [
                             'type' => 'text',
                             'value' => $this->fields['id'],
@@ -207,6 +228,13 @@ class PluginLooztickLooztick extends CommonDBTM
             'name' => __("Email"),
             'field' => 'email',
         ];
+        $tab[] = [
+            'id' => 8,
+            'table' => self::getTable(),
+            'name' => __("Activated"),
+            'field' => 'activated',
+            'massiveaction' => false,
+        ];
         return $tab;
     }
 
@@ -225,7 +253,7 @@ class PluginLooztickLooztick extends CommonDBTM
 
         $form = [
             'action' => Plugin::getWebDir('looztick') . '/front/looztick.form.php',
-            'submit' => 'Save',
+            'submit' => 'Link',
             'content' => [
                 '' => [
                     'visible' => true,
@@ -236,6 +264,7 @@ class PluginLooztickLooztick extends CommonDBTM
                             'type' => 'select',
                             'values' => array_column($qrcodes, 'id', 'id'),
                             'value' => array_values($currentQrcode)[0]['id'] ?? null,
+                            count($currentQrcode) != 0 ? 'disabled' : '' => true,
                             'hooks' => [
                                 'change' => <<<JS
                                     $.ajax({
@@ -254,7 +283,22 @@ class PluginLooztickLooztick extends CommonDBTM
                                         }
                                     });
                                 JS,
-                            ]
+                            ],
+                            'actions' => count($currentQrcode) != 0 ? ['unlink' => [
+                                    'icon' => 'fas fa-unlink',
+                                    'onClick' => <<<JS
+                                        $.ajax({
+                                            url: '{$qrcodeAjaxEndpoint}',
+                                            method: 'POST',
+                                            data: {
+                                                action: 'unlink',
+                                                id: $('#looztick_qrcode_dropdown').val(),
+                                            },
+                                        });
+                                        window.location.reload();
+                                    JS,
+                                ]
+                            ] : []
                         ],
                         "First name" => [
                             'name' => 'firstname',
@@ -301,6 +345,11 @@ class PluginLooztickLooztick extends CommonDBTM
                             'name' => 'item',
                             'type' => 'hidden',
                             'value' => $item->getType(). '_' . $item->getID(),
+                        ],
+                        'activated' => [
+                            'name' => 'activated',
+                            'type' => 'hidden',
+                            'value' => 1,
                         ],
                     ]
                 ]

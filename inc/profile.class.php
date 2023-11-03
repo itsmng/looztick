@@ -96,9 +96,9 @@ class PluginLooztickProfile extends CommonDBTM {
 		$prof = new self();
 
 		if ($prof->getFromDB($_SESSION['glpiactiveprofile']['id'])) {
-			$_SESSION["glpi_plugin_edittraduction_profile"] = $prof->fields;
+			$_SESSION["glpi_plugin_looztick_profile"] = $prof->fields;
 		} else {
-			unset($_SESSION["glpi_plugin_edittraduction_profile"]);
+			unset($_SESSION["glpi_plugin_looztick_profile"]);
 		}
 	}
 	
@@ -111,7 +111,7 @@ class PluginLooztickProfile extends CommonDBTM {
 	 */
 	function getTabNameForItem(CommonGLPI $item, $withtemplate=0) {
 		if (Session::haveRight("profile", UPDATE) && $item->getType() == 'Profile') {
-			return __('Example Plugin', 'looztick');
+			return __('Looztick Plugin', 'looztick');
 		}
 
 		return '';
@@ -150,7 +150,7 @@ class PluginLooztickProfile extends CommonDBTM {
 		$rights = [
 			[
 				'itemtype'  => 'PluginLooztickProfile',
-				'label'     => __('Example Plugin', 'looztick'),
+				'label'     => __('Looztick', 'looztick'),
 				'field'     => 'plugin_looztick_looztick',
 				'rights'    =>  [READ => __('Allow Reading', 'looztick'), UPDATE => __('Allow editing', 'looztick')],
 				'default'   => 23

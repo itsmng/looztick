@@ -34,21 +34,28 @@ require_once("../inc/config.class.php");
 
 $plugin = new Plugin();
 
+
 if($plugin->isActivated("looztick")) {
     $looztick = new PluginLooztickLooztick();
+    if (isset($_GET['id'])) {
+        $_POST['qrcode'] = $_GET['id'];
+    }
     if (isset($_POST['action']) && isset($_POST['qrcode'])) {
         global $DB;
         $table = PluginLooztickLooztick::getTable();
     
+        $item = $_POST['item'] ?? '';
+        $activated = $_POST['activated'] ?? '0';
         $query = <<<SQL
         UPDATE $table SET
-            item = "{$_POST['item']}",
+            item = "{$item}",
             firstname = "{$_POST['firstname']}",
             lastname = "{$_POST['lastname']}",
             mobile = "{$_POST['mobile']}",
             friendmobile = "{$_POST['friendmobile']}",
             countrycode = "{$_POST['countrycode']}",
-            email = "{$_POST['email']}"
+            email = "{$_POST['email']}",
+            activated = "{$activated}"
         WHERE id = "{$_POST['qrcode']}"
         SQL;
         $DB->request($query);
@@ -60,8 +67,8 @@ if($plugin->isActivated("looztick")) {
             'friendmobile' => $_POST['friendmobile'],
             'countrycode' => $_POST['countrycode'],
             'email' => $_POST['email'],
-            'client_id' => $_POST['item'],
-            'activate' => 1,
+            'id_client' => $item,
+            'activate' => $activated,
 
         ]);
         Session::addMessageAfterRedirect(__('Successful update'), true, INFO);
@@ -83,8 +90,8 @@ if($plugin->isActivated("looztick")) {
         Html::header("settings", '', "config", "plugins");
         echo "<div class='center'><br><br><img src=\"".$CFG_GLPI["root_doc"]."/pics/warning.png\" alt='warning'><br><br>";
         echo "<b>Could not connect to Looztick API</b></div>";
-        Html::footer();
     }
+    Html::footer();
 
 } else {
     Html::header("settings", '', "config", "plugins");
@@ -92,5 +99,3 @@ if($plugin->isActivated("looztick")) {
     echo "<b>Please enable the plugin before configuring it</b></div>";
     Html::footer();
 }
-
-Html::footer();

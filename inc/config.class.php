@@ -68,8 +68,7 @@ class PluginLooztickConfig extends CommonDBTM {
                     ],
                     'Default values' => [
                         'visible' => true,
-                        'inputs' => [
-                        ]
+                        'inputs' => []
                     ],
             ]
         ];
