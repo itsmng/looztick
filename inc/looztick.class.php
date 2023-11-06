@@ -89,20 +89,22 @@ class PluginLooztickLooztick extends CommonDBTM
         if (!isset($qrcodes['qrcodes']) || count($qrcodes['qrcodes']) == 0) {
             return;
         }
-
-        $query = "INSERT IGNORE INTO `$table` 
+    
+        $query = "REPLACE INTO `$table` 
                   (id, item, firstname, lastname, mobile, friendmobile, countrycode, email, activated) 
                   VALUES ";
-
+    
         $values = array();
-
+    
         foreach ($qrcodes['qrcodes'] as $qrcode) {
-            $values[] = "('{$qrcode['id']}', '', '{$qrcode['firstname']}', '{$qrcode['lastname']}', '{$qrcode['mobile']}', '{$qrcode['friendmobile']}', '{$qrcode['countrycode']}', '{$qrcode['email']}', '{$qrcode['activated']}')";
+            $values[] = "('{$qrcode['id']}', '{$qrcode['id_client']}', '{$qrcode['firstname']}', '{$qrcode['lastname']}', '{$qrcode['mobile']}', '{$qrcode['friendmobile']}', '{$qrcode['countrycode']}', '{$qrcode['email']}', '{$qrcode['activated']}')";
         }
-
+    
         $query .= implode(', ', $values) . ";";
+    
         $DB->query($query);
     }
+    
 
     static function testApiConnection(): bool
     {
@@ -143,6 +145,13 @@ class PluginLooztickLooztick extends CommonDBTM
             'Email' => 'email',
         ];
 
+        $item = explode('_', $this->fields['item']);
+        $itemUrl = $item[0]::getFormURL()."?id=".$item[1];
+        $activatedLabel = __('Activated');
+        $link = <<<HTML
+        <a href={$itemUrl}>{$activatedLabel}</a>
+        HTML;
+
         $form = [
             'action' => $form_action,
             'submit' => __('Save'),
@@ -155,7 +164,7 @@ class PluginLooztickLooztick extends CommonDBTM
                             'type' => 'hidden',
                             'value' => 'update',
                         ],
-                        'Activated' => [
+                        $link => [
                             'type' => 'checkbox',
                             'value' => $this->fields['activated'],
                             'name' => 'activated',

@@ -35,13 +35,23 @@ include ("../../../inc/includes.php");
 Session::checkLoginUser();
 
 header('Content-Type: application/json; charset=utf-8');
-if (isset($_POST['id'])) {
-    if (isset($_POST['action'])) {
-        if ($_POST['action'] == 'unlink') {
-            $result = PluginLooztickLooztick::unlink($_POST['id']);
+if (isset($_POST['action'])) {
+    try {
+        switch ($_POST['action']) {
+            case 'unlink':
+                PluginLooztickLooztick::unlink($_POST['id']);
+                break;
+            case 'sync':
+                PluginLooztickLooztick::updateQrCodes();
+                break;
         }
-    } else {
-
+    } catch (Exception $e) {
+        $result = ['error' => $e->getMessage()];
+    } finally {
+        $result = ['status' => 'success'];
+    }
+    echo json_encode($result);
+} else if (isset($_POST['id'])) {
         global $DB;
         $result = $DB->request([
             'SELECT' => [
@@ -66,7 +76,6 @@ if (isset($_POST['id'])) {
             };
         }
         echo json_encode($code);
-    }
 } else {
     echo json_encode([]);
 }

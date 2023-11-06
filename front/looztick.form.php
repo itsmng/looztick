@@ -77,7 +77,7 @@ if($plugin->isActivated("looztick")) {
     }
     
     if ($looztick->testApiConnection()) {
-        Html::header("Looztick", $_SERVER["PHP_SELF"], "tools");
+        Html::header("Looztick", $_SERVER["PHP_SELF"], "tools", PluginLooztickLooztick::class);
         if (isset($_GET["id"])) {
             $looztick->display([
                 'id'           => $_GET["id"],

@@ -40,6 +40,7 @@ class PluginLooztickConfig extends CommonDBTM {
 
         $api_key_label = __("API Key");
         $form_action = Plugin::getWebDir("looztick")."/front/config.form.php";
+        $form_ajax = Plugin::getWebDir('looztick')."/ajax/qrcode.php";
         
         $config = ($DB->request("SELECT * FROM glpi_plugin_looztick_config WHERE id=1"))->next();
         
@@ -52,10 +53,52 @@ class PluginLooztickConfig extends CommonDBTM {
             'Email' => 'email',
         ];
 
+        $image = Plugin::getWebDir('looztick').'/img/looztick.png';
+
         $form = [
             'action' => $form_action,
-            'submit' => __('Save'),
+            'buttons' => [
+                [
+                    'type' => 'submit',
+                    'name' => 'update_config',
+                    'value' => __('Update'),
+                    'class' => 'submit-button btn btn-warning',
+                ],
+                [
+                    'type' => 'button',
+                    'name' => 'update_config',
+                    'value' => __('Synchronize'),
+                    'class' => 'submit-button btn btn-primary',
+                    'icon' => 'fas fa-sync',
+                    'onClick' => <<<JS
+                    $.ajax({
+                        url: '{$form_ajax}',
+                        type: 'POST',
+                        data: {
+                            action: 'sync'
+                        },
+                        success: function (data) {
+                            if (data.status == 'success') {
+                                console.log('Synchronization successful');
+                            } else {
+                                console.log('Synchronization failed');
+                            }
+                        }
+                    });
+                    JS,
+                ],
+            ],
             'content' => [
+                '' => [
+                    'visible' => true,
+                    'inputs' => [
+                        '' => [
+                            'content' => <<<HTML
+                            <img src="{$image}" alt="Looztick logo" class="mx-auto" style="max-height: 6rem;width: auto"/>
+                            HTML,
+                        ]
+                    ]
+                ],
                 'Configuration' => [
                     'visible' => true,
                     'inputs' => [
@@ -79,8 +122,8 @@ class PluginLooztickConfig extends CommonDBTM {
                 'name' => $name,
             ]];
         }
-        include_once PLUGIN::getPhpDir('looztick') . "/inc/form.utils.php";
-        renderForm($form);
+        include_once GLPI_ROOT . "/ng/form.utils.php";
+        renderTwigForm($form);
     }
 
     public function updateConfig() {
