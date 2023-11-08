@@ -53,8 +53,8 @@ function plugin_version_looztick() {
 }
 
 function plugin_looztick_check_prerequisites() {
-    if (version_compare(ITSM_VERSION, '1.5', 'lt')) {
-        echo "This plugin requires ITSM >= 1.5";
+    if (version_compare(ITSM_VERSION, '2.0', 'lt')) {
+        echo "This plugin requires ITSM >= 2.0";
         return false;
     }
     return true;
