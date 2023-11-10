@@ -112,11 +112,14 @@ class PluginLooztickLooztick extends CommonDBTM
         return $response['control'] == "ok";
     }
 
-    static function getQrCodes(): array
+    static function getQrCodes($conditions = []): array
     {
         global $DB;
-        $query = "SELECT * FROM glpi_plugin_looztick_loozticks";
-        $result = $DB->query($query);
+        $result = $DB->request([
+            'SELECT' => '*',
+            'FROM' => self::getTable(),
+            'WHERE' => $conditions
+        ]);
         return iterator_to_array($result);
     }
 
@@ -146,10 +149,10 @@ class PluginLooztickLooztick extends CommonDBTM
         ];
 
         $item = explode('_', $this->fields['item']);
-        $itemUrl = $item[0]::getFormURL()."?id=".$item[1];
+        $itemUrl = method_exists($item[0], 'getFormURL') ? $item[0]::getFormURL()."?id=".$item[1] : '#';
         $activatedLabel = __('Activated');
         $link = <<<HTML
-        <a href={$itemUrl}>{$activatedLabel}</a>
+        {$activatedLabel} : <a href={$itemUrl}>{$item[0]}</a>
         HTML;
 
         $form = [
@@ -167,6 +170,7 @@ class PluginLooztickLooztick extends CommonDBTM
                         $link => [
                             'type' => 'checkbox',
                             'value' => $this->fields['activated'],
+                            $this->fields['activated'] == 1 ? 'checked' : '' => true,
                             'name' => 'activated',
                             'disabled' => true,
                         ],
@@ -254,11 +258,31 @@ class PluginLooztickLooztick extends CommonDBTM
 
     static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0)
     {
-        $qrcodes = self::getQrCodes();
+        $qrcodes = self::getQrCodes(['OR' => [
+            'item' => $item->getType(). '_' .$item->getID(),
+            'item' => '',
+        ]]);
         $currentQrcode = array_filter($qrcodes, function ($qrcode) use ($item) {
             return $qrcode['item'] == $item->getType(). '_' .$item->getID();
         });
         $qrcodeAjaxEndpoint = Plugin::getWebDir('looztick') . '/ajax/qrcode.php';
+        $updateInputs = <<<JS
+            $.ajax({
+                url: '{$qrcodeAjaxEndpoint}',
+                method: 'POST',
+                data: {
+                    id: $('#looztick_qrcode_dropdown').val()
+                },
+                success: function(data) {
+                    $('#looztick_firstname').val(data.firstname);
+                    $('#looztick_lastname').val(data.lastname);
+                    $('#looztick_mobile').val(data.mobile);
+                    $('#looztick_friendmobile').val(data.friendmobile);
+                    $('#looztick_countrycode').val(data.countrycode);
+                    $('#looztick_email').val(data.email);
+                }
+            });
+        JS;
 
         $form = [
             'action' => Plugin::getWebDir('looztick') . '/front/looztick.form.php',
@@ -275,24 +299,9 @@ class PluginLooztickLooztick extends CommonDBTM
                             'value' => array_values($currentQrcode)[0]['id'] ?? null,
                             count($currentQrcode) != 0 ? 'disabled' : '' => true,
                             'hooks' => [
-                                'change' => <<<JS
-                                    $.ajax({
-                                        url: '{$qrcodeAjaxEndpoint}',
-                                        method: 'POST',
-                                        data: {
-                                            id: $('#looztick_qrcode_dropdown').val()
-                                        },
-                                        success: function(data) {
-                                            $('#looztick_firstname').val(data.firstname);
-                                            $('#looztick_lastname').val(data.lastname);
-                                            $('#looztick_mobile').val(data.mobile);
-                                            $('#looztick_friendmobile').val(data.friendmobile);
-                                            $('#looztick_countrycode').val(data.countrycode);
-                                            $('#looztick_email').val(data.email);
-                                        }
-                                    });
-                                JS,
+                                'change' => $updateInputs,
                             ],
+                            'init' => $updateInputs,
                             'actions' => count($currentQrcode) != 0 ? ['unlink' => [
                                     'icon' => 'fas fa-unlink',
                                     'onClick' => <<<JS
