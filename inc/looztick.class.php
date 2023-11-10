@@ -59,7 +59,7 @@ class PluginLooztickLooztick extends CommonDBTM
 
     static function sendQuery(string $method = 'GET', string $uri = '/', array $data = [])
     {
-        $apiKey = self::getConfig()['api_key'] ?? '';
+        $apiKey = Toolbox::sodiumDecrypt(self::getConfig()['api_key'] ?? '');
         $result = [];
         foreach (explode(',', $apiKey) as $key) {
             $content = $data + ['key' => $key];

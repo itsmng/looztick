@@ -40,9 +40,10 @@ if($plugin->isActivated("looztick")) {
         Session::checkRight("config", UPDATE);
         
         global $DB;
+        $api_key = Toolbox::sodiumEncrypt($_POST["api_key"]);
         $query = <<<SQL
         UPDATE glpi_plugin_looztick_config SET
-            api_key = '{$_POST["api_key"]}',
+            api_key = '{$api_key}',
             firstname = '{$_POST["firstname"]}',
             lastname = '{$_POST["lastname"]}',
             mobile = '{$_POST["mobile"]}',

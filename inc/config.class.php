@@ -104,7 +104,7 @@ class PluginLooztickConfig extends CommonDBTM {
                     'inputs' => [
                         'Api Keys (separated by ",")' => [
                             'type' => 'text',
-                            'value' => $config['api_key'],
+                            'value' => Toolbox::sodiumDecrypt($config['api_key']),
                             'name' => 'api_key',
                         ],
                     ]
