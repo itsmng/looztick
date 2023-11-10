@@ -79,9 +79,9 @@ class PluginLooztickConfig extends CommonDBTM {
                         },
                         success: function (data) {
                             if (data.status == 'success') {
-                                console.log('Synchronization successful');
+                                document.location = '{$form_action}?sync=success';
                             } else {
-                                console.log('Synchronization failed');
+                                document.location = '{$form_action}?sync=error';
                             }
                         }
                     });

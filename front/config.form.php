@@ -38,7 +38,6 @@ if($plugin->isActivated("looztick")) {
     $config = new PluginLooztickConfig();
     if(isset($_POST["api_key"])) {
         Session::checkRight("config", UPDATE);
-
         
         global $DB;
         $query = <<<SQL
@@ -58,12 +57,21 @@ if($plugin->isActivated("looztick")) {
         if (!PluginLooztickLooztick::testApiConnection()) {
             Session::addMessageAfterRedirect("API key is invalid", false, ERROR);
             Html::back();
+        } else {
+            Session::addMessageAfterRedirect("Configuration updated");
+            Html::redirect($_SERVER["PHP_SELF"]);
         }
     }
 
+    if (isset($_GET['sync'])) {
+        PluginLooztickLooztick::updateQrCodes();
+        Session::addMessageAfterRedirect("sync status : ". $_GET['sync']);
+        Html::redirect($_SERVER["PHP_SELF"]);
+    }
     Html::header("Looztick", $_SERVER["PHP_SELF"], "config", "plugins");
     $config->showConfigForm();
 } else {
+    
     Html::header("settings", '', "config", "plugins");
     echo "<div class='center'><br><br><img src=\"".$CFG_GLPI["root_doc"]."/pics/warning.png\" alt='warning'><br><br>";
     echo "<b>Please enable the plugin before configuring it</b></div>";

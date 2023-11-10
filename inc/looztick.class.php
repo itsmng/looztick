@@ -84,20 +84,37 @@ class PluginLooztickLooztick extends CommonDBTM
     static function updateQrCodes()
     {
         global $DB;
-        $qrcodes = self::sendQuery('GET', '/qrcodes/');
+        $qrcodes_api = self::sendQuery('GET', '/qrcodes/');
+        $qrcodes_local = self::getQrCodes();
         $table = self::getTable();
-        if (!isset($qrcodes['qrcodes']) || count($qrcodes['qrcodes']) == 0) {
+        if (!isset($qrcodes_api['qrcodes']) || count($qrcodes_api['qrcodes']) == 0) {
             return;
         }
-    
+
+        // update and insert any not linked and non-existing qrcode
         $query = "REPLACE INTO `$table` 
                   (id, item, firstname, lastname, mobile, friendmobile, countrycode, email, activated) 
                   VALUES ";
     
         $values = array();
     
-        foreach ($qrcodes['qrcodes'] as $qrcode) {
-            $values[] = "('{$qrcode['id']}', '{$qrcode['id_client']}', '{$qrcode['firstname']}', '{$qrcode['lastname']}', '{$qrcode['mobile']}', '{$qrcode['friendmobile']}', '{$qrcode['countrycode']}', '{$qrcode['email']}', '{$qrcode['activated']}')";
+        foreach ($qrcodes_api['qrcodes'] as $qrcode) {
+            if (in_array($qrcode['id'], array_column($qrcodes_local, 'id')) && $qrcodes_local[$qrcode['id']]['item'] != '') {
+                $current_local = $qrcodes_local[$qrcode['id']];
+                self::sendQuery('POST', '/update/', [
+                    'qrcode' => $current_local['id'],
+                    'activate' => $current_local['activated'],
+                    'firstname' => $current_local['firstname'],
+                    'lastname' => $current_local['lastname'],
+                    'mobile' => $current_local['mobile'],
+                    'friendmobile' => $current_local['friendmobile'],
+                    'countrycode' => $current_local['countrycode'],
+                    'email' => $current_local['email'],
+                    'id_client' => $current_local['item'],
+                ]);
+            } else {
+                $values[] = "('{$qrcode['id']}', '{$qrcode['id_client']}', '{$qrcode['firstname']}', '{$qrcode['lastname']}', '{$qrcode['mobile']}', '{$qrcode['friendmobile']}', '{$qrcode['countrycode']}', '{$qrcode['email']}', '{$qrcode['activated']}')";
+            }
         }
     
         $query .= implode(', ', $values) . ";";
@@ -259,8 +276,8 @@ class PluginLooztickLooztick extends CommonDBTM
     static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0)
     {
         $qrcodes = self::getQrCodes(['OR' => [
-            'item' => $item->getType(). '_' .$item->getID(),
-            'item' => '',
+            ['item' => $item->getType(). '_' .$item->getID()],
+            ['item' => ''],
         ]]);
         $currentQrcode = array_filter($qrcodes, function ($qrcode) use ($item) {
             return $qrcode['item'] == $item->getType(). '_' .$item->getID();
