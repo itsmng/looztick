@@ -105,6 +105,9 @@ function plugin_looztick_uninstall() {
     if($DB->tableExists('glpi_plugin_looztick_config')) {
         $DB->queryOrDie("DROP TABLE `glpi_plugin_looztick_config`",$DB->error());
     }
+    if($DB->tableExists('glpi_plugin_looztick_profiles')) {
+        $DB->queryOrDie("DROP TABLE `glpi_plugin_looztick_profiles`",$DB->error());
+    }
     if($DB->tableExists('glpi_plugin_looztick_loozticks')) {
         $DB->queryOrDie("DROP TABLE `glpi_plugin_looztick_loozticks`",$DB->error());
         $DB->queryOrDie("DELETE FROM `glpi_displaypreferences` WHERE `itemtype` = 'PluginLooztickLooztick'",$DB->error());
