@@ -30,6 +30,17 @@
  * ---------------------------------------------------------------------
  */
 class PluginLooztickConfig extends CommonDBTM {
+    static function getMenuContent(): array
+    {
+        $menu = [
+            'title' => 'Looztick',
+            'page' => Plugin::getPhpDir('looztick', false) . '/front/config.form.php',
+            'icon' => 'fas fa-qrcode'
+        ];
+
+        return $menu;
+    }
+
     /**
      * Displays the configuration page for the plugin
      * 
@@ -38,7 +49,6 @@ class PluginLooztickConfig extends CommonDBTM {
     public function showConfigForm() {
         global $DB;
 
-        $api_key_label = __("API Key");
         $form_action = Plugin::getWebDir("looztick")."/front/config.form.php";
         $form_ajax = Plugin::getWebDir('looztick')."/ajax/qrcode.php";
         
@@ -53,7 +63,7 @@ class PluginLooztickConfig extends CommonDBTM {
             'Email' => 'email',
         ];
 
-        $image = Plugin::getWebDir('looztick').'/img/looztick.png';
+        $image = Plugin::getWebDir('looztick').'/datas/looztick.png';
 
         $form = [
             'action' => $form_action,
@@ -106,12 +116,18 @@ class PluginLooztickConfig extends CommonDBTM {
                             'type' => 'text',
                             'value' => Toolbox::sodiumDecrypt($config['api_key']),
                             'name' => 'api_key',
+                            'required' => true,
+                            'col' => 12,
+                            'col_md' => 12,
+                            'col_lg' => 12,
                         ],
                     ]
                     ],
                     'Default values' => [
                         'visible' => true,
-                        'inputs' => []
+                        'inputs' => [
+                            
+                        ]
                     ],
             ]
         ];
@@ -122,6 +138,15 @@ class PluginLooztickConfig extends CommonDBTM {
                 'name' => $name,
             ]];
         }
+        $form['content']['Default values']['inputs'] += [__("Comment") => [
+            'name' => 'comment',
+            'type' => 'textarea',
+            'value' => $config['comment'] ?? null,
+            'rows' => 5,
+            'col' => 12,
+            'col_md' => 12,
+            'col_lg' => 12,
+        ]];
         include_once GLPI_ROOT . "/ng/form.utils.php";
         renderTwigForm($form);
     }

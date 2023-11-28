@@ -208,6 +208,16 @@ class PluginLooztickLooztick extends CommonDBTM
                 'name' => $name,
             ]];
         }
+        $form['content']['Looztick QR Code']['inputs'] += [__("Comment") => [
+            'name' => 'comment',
+            'type' => 'textarea',
+            'value' => $this->fields['comment'] ?? null,
+            'rows' => 5,
+            'col' => 12,
+            'col_md' => 12,
+            'col_lg' => 12,
+        ]];
+
         include_once GLPI_ROOT . '/ng/form.utils.php';
         renderTwigForm($form);
     }
@@ -265,6 +275,13 @@ class PluginLooztickLooztick extends CommonDBTM
             'field' => 'activated',
             'massiveaction' => false,
         ];
+        $tab[] = [
+            'id' => 9,
+            'table' => self::getTable(),
+            'name' => __("Comment"),
+            'field' => 'comment',
+            'massiveaction' => false,
+        ];
         return $tab;
     }
 
@@ -301,9 +318,16 @@ class PluginLooztickLooztick extends CommonDBTM
             });
         JS;
 
+        $countryCodes = array_map('str_getcsv', file(Plugin::getPhpDir('looztick') . '/datas/countrycode.csv'));
+        $alpha2Idx = array_search('alpha-2', $countryCodes[0]);
+        $nameIdx = array_search('name', $countryCodes[0]);
+        unset($countryCodes[0]);
+        $alpha2CountryCodes = array_column($countryCodes, $alpha2Idx);
+        $nameCountryCodes = array_column($countryCodes, $nameIdx);
+        $countryCodes = array_combine($alpha2CountryCodes, $nameCountryCodes);
+
         $form = [
             'action' => Plugin::getWebDir('looztick') . '/front/looztick.form.php',
-            'submit' => 'Link',
             'content' => [
                 '' => [
                     'visible' => true,
@@ -359,17 +383,25 @@ class PluginLooztickLooztick extends CommonDBTM
                             'type' => 'text',
                             'value' => array_values($currentQrcode)[0]['friendmobile'] ?? null,
                         ],
-                        "Country code" => [
+                        __('Country') => [
+                            'type' => 'select',
+                            'id' => 'countryCodeDropdown',
+                            'searchable' => true,
                             'name' => 'countrycode',
-                            'id' => 'looztick_countrycode',
-                            'type' => 'text',
                             'value' => array_values($currentQrcode)[0]['countrycode'] ?? null,
-                        ],
-                        "Email" => [
+                            'values' => $countryCodes,
+                         ],
+                        __("Email") => [
                             'name' => 'email',
                             'id' => 'looztick_email',
                             'type' => 'text',
                             'value' => array_values($currentQrcode)[0]['email'] ?? null,
+                        ],
+                        __("Comment") => [
+                            'name' => 'comment',
+                            'type' => 'textarea',
+                            'value' => array_values($currentQrcode)[0]['comment'] ?? null,
+                            'rows' => 5
                         ],
                         'action' => [
                             'name' => 'action',

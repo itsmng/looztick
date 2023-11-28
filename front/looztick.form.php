@@ -55,7 +55,8 @@ if($plugin->isActivated("looztick")) {
             friendmobile = "{$_POST['friendmobile']}",
             countrycode = "{$_POST['countrycode']}",
             email = "{$_POST['email']}",
-            activated = "{$activated}"
+            activated = "{$activated}",
+            comment = '{$_POST["comment"]}'
         WHERE id = "{$_POST['qrcode']}"
         SQL;
         $DB->request($query);
@@ -69,7 +70,7 @@ if($plugin->isActivated("looztick")) {
             'email' => $_POST['email'],
             'id_client' => $item,
             'activate' => $activated,
-
+            'comment' => $_POST["comment"],
         ]);
         Session::addMessageAfterRedirect(__('Successful update'), true, INFO);
         Html::back();

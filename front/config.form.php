@@ -49,7 +49,8 @@ if($plugin->isActivated("looztick")) {
             mobile = '{$_POST["mobile"]}',
             friendmobile = '{$_POST["friendmobile"]}',
             countrycode = '{$_POST["countrycode"]}',
-            email = '{$_POST["email"]}'
+            email = '{$_POST["email"]}',
+            comment = '{$_POST["comment"]}'
         WHERE id = 1
         SQL;
         $DB->request($query);
@@ -69,7 +70,7 @@ if($plugin->isActivated("looztick")) {
         Session::addMessageAfterRedirect("sync status : ". $_GET['sync']);
         Html::redirect($_SERVER["PHP_SELF"]);
     }
-    Html::header("Looztick", $_SERVER["PHP_SELF"], "config", "plugins");
+    Html::header("Looztick", $_SERVER["PHP_SELF"], "config", PluginLooztickLooztick::class);
     $config->showConfigForm();
 } else {
     
