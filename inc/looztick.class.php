@@ -59,9 +59,9 @@ class PluginLooztickLooztick extends CommonDBTM
 
     static function sendQuery(string $method = 'GET', string $uri = '/', array $data = [])
     {
-        $apiKey = Toolbox::sodiumDecrypt(self::getConfig()['api_key'] ?? '');
-        $result = [];
-        foreach (explode(',', $apiKey) as $key) {
+        $apiKeys = explode(',', Toolbox::sodiumDecrypt(self::getConfig()['api_key'] ?? ''));
+        $results = [];
+        foreach ($apiKeys as $key) {
             $content = $data + ['key' => $key];
             $url = self::LOOZTIK_ENDPOINT . $uri;
             $opts = [
@@ -73,32 +73,27 @@ class PluginLooztickLooztick extends CommonDBTM
             ];
             $context = stream_context_create($opts);
             $result = json_decode(file_get_contents($url, false, $context), true);
-            if ($result['control'] != "ok") {
-                throw new Exception($result['reason']);
+            array_push($results, $result);
+        }
+        $okCount = 0;
+        foreach ($results as $result) {
+            if ($result['control'] == 'ok') {
+                $okCount++;
             }
         }
 
-        return $result;
+        return $results;
     }
 
     static function updateQrCodes()
     {
         global $DB;
-        $qrcodes_api = self::sendQuery('GET', '/qrcodes/');
+        $all_qrcodes = self::sendQuery('GET', '/qrcodes/');
+        $qrcodes_api = array_merge(...array_column($all_qrcodes, 'qrcodes'));
         $qrcodes_local = self::getQrCodes();
         $table = self::getTable();
-        if (!isset($qrcodes_api['qrcodes']) || count($qrcodes_api['qrcodes']) == 0) {
-            return;
-        }
 
-        // update and insert any not linked and non-existing qrcode
-        $query = "REPLACE INTO `$table` 
-                  (id, item, firstname, lastname, mobile, friendmobile, countrycode, email, activated) 
-                  VALUES ";
-    
-        $values = array();
-    
-        foreach ($qrcodes_api['qrcodes'] as $qrcode) {
+        foreach ( $qrcodes_api as $qrcode) {
             if (in_array($qrcode['id'], array_column($qrcodes_local, 'id')) && $qrcodes_local[$qrcode['id']]['item'] != '') {
                 $current_local = $qrcodes_local[$qrcode['id']];
                 self::sendQuery('POST', '/update/', [
@@ -111,22 +106,58 @@ class PluginLooztickLooztick extends CommonDBTM
                     'countrycode' => $current_local['countrycode'],
                     'email' => $current_local['email'],
                     'id_client' => $current_local['item'],
+                    'describe' => $current_local['comment'],
                 ]);
-            } else {
-                $values[] = "('{$qrcode['id']}', '{$qrcode['id_client']}', '{$qrcode['firstname']}', '{$qrcode['lastname']}', '{$qrcode['mobile']}', '{$qrcode['friendmobile']}', '{$qrcode['countrycode']}', '{$qrcode['email']}', '{$qrcode['activated']}')";
             }
+        };
+
+        $all_qrcodes = self::sendQuery('GET', '/qrcodes/');
+        $qrcodes_api = array_merge(...array_column($all_qrcodes, 'qrcodes'));
+        // drop table and recreate it with the datas
+        $query = "TRUNCATE TABLE {$table}";
+        $DB->query($query);
+
+        $query = <<<SQL
+        INSERT INTO {$table} (
+            id,
+            activated,
+            firstname,
+            lastname,
+            mobile,
+            friendmobile,
+            countrycode,
+            email,
+            comment,
+            item
+        ) VALUES
+        SQL;
+        $values = [];
+        foreach ($qrcodes_api as $qrcode) {
+            $values[] = "(
+                '{$qrcode['id']}',
+                '{$qrcode['activated']}',
+                '{$qrcode['firstname']}',
+                '{$qrcode['lastname']}',
+                '{$qrcode['mobile']}',
+                '{$qrcode['friendmobile']}',
+                '{$qrcode['countrycode']}',
+                '{$qrcode['email']}',
+                '{$qrcode['describe']}',
+                '{$qrcode['id_client']}'
+            )";
         }
-    
-        $query .= implode(', ', $values) . ";";
-    
+        $query .= implode(',', $values);
         $DB->query($query);
     }
-    
 
     static function testApiConnection(): bool
     {
-        $response = PluginLooztickLooztick::sendQuery("POST");
-        return $response['control'] == "ok";
+        $responses = PluginLooztickLooztick::sendQuery("POST");
+        foreach ($responses as $response) {
+            if ($response['control'] != "ok")
+                return false;
+        }
+        return true;
     }
 
     static function getQrCodes($conditions = []): array
