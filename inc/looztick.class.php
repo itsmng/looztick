@@ -59,9 +59,9 @@ class PluginLooztickLooztick extends CommonDBTM
 
     static function sendQuery(string $method = 'GET', string $uri = '/', array $data = [])
     {
-        $apiKey = Toolbox::sodiumDecrypt(self::getConfig()['api_key'] ?? '');
-        $result = [];
-        foreach (explode(',', $apiKey) as $key) {
+        $apiKeys = explode(',', Toolbox::sodiumDecrypt(self::getConfig()['api_key'] ?? ''));
+        $results = [];
+        foreach ($apiKeys as $key) {
             $content = $data + ['key' => $key];
             $url = self::LOOZTIK_ENDPOINT . $uri;
             $opts = [
@@ -72,33 +72,28 @@ class PluginLooztickLooztick extends CommonDBTM
                 ]
             ];
             $context = stream_context_create($opts);
-            $result = array_merge($result, json_decode(file_get_contents($url, false, $context), true));
-            if ($result['control'] != "ok") {
-                break;
+            $result = json_decode(file_get_contents($url, false, $context), true);
+            array_push($results, $result);
+        }
+        $okCount = 0;
+        foreach ($results as $result) {
+            if ($result['control'] == 'ok') {
+                $okCount++;
             }
         }
 
-        return $result;
+        return $results;
     }
 
     static function updateQrCodes()
     {
         global $DB;
-        $qrcodes_api = self::sendQuery('GET', '/qrcodes/');
+        $all_qrcodes = self::sendQuery('GET', '/qrcodes/');
+        $qrcodes_api = array_merge(...array_column($all_qrcodes, 'qrcodes'));
         $qrcodes_local = self::getQrCodes();
         $table = self::getTable();
-        if (!isset($qrcodes_api['qrcodes']) || count($qrcodes_api['qrcodes']) == 0) {
-            return;
-        }
 
-        // update and insert any not linked and non-existing qrcode
-        $query = "REPLACE INTO `$table` 
-                  (id, item, firstname, lastname, mobile, friendmobile, countrycode, email, activated) 
-                  VALUES ";
-    
-        $values = array();
-    
-        foreach ($qrcodes_api['qrcodes'] as $qrcode) {
+        foreach ( $qrcodes_api as $qrcode) {
             if (in_array($qrcode['id'], array_column($qrcodes_local, 'id')) && $qrcodes_local[$qrcode['id']]['item'] != '') {
                 $current_local = $qrcodes_local[$qrcode['id']];
                 self::sendQuery('POST', '/update/', [
@@ -111,22 +106,58 @@ class PluginLooztickLooztick extends CommonDBTM
                     'countrycode' => $current_local['countrycode'],
                     'email' => $current_local['email'],
                     'id_client' => $current_local['item'],
+                    'describe' => $current_local['comment'],
                 ]);
-            } else {
-                $values[] = "('{$qrcode['id']}', '{$qrcode['id_client']}', '{$qrcode['firstname']}', '{$qrcode['lastname']}', '{$qrcode['mobile']}', '{$qrcode['friendmobile']}', '{$qrcode['countrycode']}', '{$qrcode['email']}', '{$qrcode['activated']}')";
             }
+        };
+
+        $all_qrcodes = self::sendQuery('GET', '/qrcodes/');
+        $qrcodes_api = array_merge(...array_column($all_qrcodes, 'qrcodes'));
+        // drop table and recreate it with the datas
+        $query = "TRUNCATE TABLE {$table}";
+        $DB->query($query);
+
+        $query = <<<SQL
+        INSERT INTO {$table} (
+            id,
+            activated,
+            firstname,
+            lastname,
+            mobile,
+            friendmobile,
+            countrycode,
+            email,
+            comment,
+            item
+        ) VALUES
+        SQL;
+        $values = [];
+        foreach ($qrcodes_api as $qrcode) {
+            $values[] = "(
+                '{$qrcode['id']}',
+                '{$qrcode['activated']}',
+                '{$qrcode['firstname']}',
+                '{$qrcode['lastname']}',
+                '{$qrcode['mobile']}',
+                '{$qrcode['friendmobile']}',
+                '{$qrcode['countrycode']}',
+                '{$qrcode['email']}',
+                '{$qrcode['describe']}',
+                '{$qrcode['id_client']}'
+            )";
         }
-    
-        $query .= implode(', ', $values) . ";";
-    
+        $query .= implode(',', $values);
         $DB->query($query);
     }
-    
 
     static function testApiConnection(): bool
     {
-        $response = PluginLooztickLooztick::sendQuery("POST");
-        return $response['control'] == "ok";
+        $responses = PluginLooztickLooztick::sendQuery("POST");
+        foreach ($responses as $response) {
+            if ($response['control'] != "ok")
+                return false;
+        }
+        return true;
     }
 
     static function getQrCodes($conditions = []): array
@@ -161,7 +192,6 @@ class PluginLooztickLooztick extends CommonDBTM
             'Last name' => 'lastname',
             'Mobile' => 'mobile',
             'Second mobile' => 'friendmobile',
-            'Country code' => 'countrycode',
             'Email' => 'email',
         ];
 
@@ -197,6 +227,16 @@ class PluginLooztickLooztick extends CommonDBTM
                             'name' => 'api_key',
                             'disabled' => true,
                         ],
+                        'activated' => [
+                            'type' => 'hidden',
+                            'value' => $this->fields['activated'],
+                            'name' => 'activated',
+                        ],
+                        'item' => [
+                            'type' => 'hidden',
+                            'value' => $this->fields['item'],
+                            'name' => 'item',
+                        ],
                     ]
                 ] 
             ]
@@ -208,6 +248,26 @@ class PluginLooztickLooztick extends CommonDBTM
                 'name' => $name,
             ]];
         }
+        $form['content']['Looztick QR Code']['inputs'] += [
+            __('Country') => [
+            'type' => 'select',
+            'id' => 'countryCodeDropdown',
+            'searchable' => true,
+            'name' => 'countrycode',
+            'value' => $this->fields['countrycode'] ?? null,
+            'values' => self::getCountryCodes(),
+            ],
+            __("Comment") => [
+                'name' => 'comment',
+                'type' => 'textarea',
+                'value' => $this->fields['comment'] ?? null,
+                'rows' => 5,
+                'col' => 12,
+                'col_md' => 12,
+                'col_lg' => 12,
+            ]
+        ];
+
         include_once GLPI_ROOT . '/ng/form.utils.php';
         renderTwigForm($form);
     }
@@ -265,12 +325,29 @@ class PluginLooztickLooztick extends CommonDBTM
             'field' => 'activated',
             'massiveaction' => false,
         ];
+        $tab[] = [
+            'id' => 9,
+            'table' => self::getTable(),
+            'name' => __("Comment"),
+            'field' => 'comment',
+            'massiveaction' => false,
+        ];
         return $tab;
     }
 
     function getTabNameForItem(CommonGLPI $item, $withtemplate = 0)
     {
         return "Looztick";
+    }
+
+    static function getCountryCodes() {
+        $countryCodes = array_map('str_getcsv', file(Plugin::getPhpDir('looztick') . '/datas/countrycode.csv'));
+        $alpha2Idx = array_search('alpha-2', $countryCodes[0]);
+        $nameIdx = array_search('name', $countryCodes[0]);
+        unset($countryCodes[0]);
+        $alpha2CountryCodes = array_column($countryCodes, $alpha2Idx);
+        $nameCountryCodes = array_column($countryCodes, $nameIdx);
+        return array_combine($alpha2CountryCodes, $nameCountryCodes);
     }
 
     static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0)
@@ -303,7 +380,6 @@ class PluginLooztickLooztick extends CommonDBTM
 
         $form = [
             'action' => Plugin::getWebDir('looztick') . '/front/looztick.form.php',
-            'submit' => 'Link',
             'content' => [
                 '' => [
                     'visible' => true,
@@ -359,17 +435,25 @@ class PluginLooztickLooztick extends CommonDBTM
                             'type' => 'text',
                             'value' => array_values($currentQrcode)[0]['friendmobile'] ?? null,
                         ],
-                        "Country code" => [
+                        __('Country') => [
+                            'type' => 'select',
+                            'id' => 'countryCodeDropdown',
+                            'searchable' => true,
                             'name' => 'countrycode',
-                            'id' => 'looztick_countrycode',
-                            'type' => 'text',
                             'value' => array_values($currentQrcode)[0]['countrycode'] ?? null,
+                            'values' => self::getCountryCodes(),
                         ],
-                        "Email" => [
+                        __("Email") => [
                             'name' => 'email',
                             'id' => 'looztick_email',
                             'type' => 'text',
                             'value' => array_values($currentQrcode)[0]['email'] ?? null,
+                        ],
+                        __("Comment") => [
+                            'name' => 'comment',
+                            'type' => 'textarea',
+                            'value' => array_values($currentQrcode)[0]['comment'] ?? null,
+                            'rows' => 5
                         ],
                         'action' => [
                             'name' => 'action',

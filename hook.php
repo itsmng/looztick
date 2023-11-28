@@ -46,6 +46,7 @@ function plugin_looztick_install() {
                 friendmobile varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 countrycode varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 email varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                comment LONGTEXT COLLATE utf8_unicode_ci NOT NULL,
                 PRIMARY KEY (`id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
         SQL;
@@ -68,6 +69,7 @@ function plugin_looztick_install() {
                 friendmobile varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 countrycode varchar(255) COLLATE utf8_unicode_ci NOT NULL,
                 email varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+                comment LONGTEXT COLLATE utf8_unicode_ci NOT NULL,
                 PRIMARY KEY (`id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
         SQL;
