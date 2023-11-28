@@ -46,6 +46,24 @@ if($plugin->isActivated("looztick")) {
     
         $item = $_POST['item'] ?? '';
         $activated = $_POST['activated'] ?? '0';
+        try {
+            PluginLooztickLooztick::sendQuery('POST', '/update/', [
+                'qrcode' => $_POST['qrcode'],
+                'firstname' => $_POST['firstname'],
+                'lastname' => $_POST['lastname'],
+                'mobile' => $_POST['mobile'],
+                'friendmobile' => $_POST['friendmobile'],
+                'countrycode' => $_POST['countrycode'],
+                'email' => $_POST['email'],
+                'id_client' => $item,
+                'activate' => $activated,
+                'describe' => $_POST["comment"],
+            ]);
+        } catch (Exception $e) {
+            Session::addMessageAfterRedirect($e->getMessage(), false, ERROR);
+            Html::back();
+            return;
+        }
         $query = <<<SQL
         UPDATE $table SET
             item = "{$item}",
@@ -60,18 +78,6 @@ if($plugin->isActivated("looztick")) {
         WHERE id = "{$_POST['qrcode']}"
         SQL;
         $DB->request($query);
-        PluginLooztickLooztick::sendQuery('POST', '/update/', [
-            'qrcode' => $_POST['qrcode'],
-            'firstname' => $_POST['firstname'],
-            'lastname' => $_POST['lastname'],
-            'mobile' => $_POST['mobile'],
-            'friendmobile' => $_POST['friendmobile'],
-            'countrycode' => $_POST['countrycode'],
-            'email' => $_POST['email'],
-            'id_client' => $item,
-            'activate' => $activated,
-            'comment' => $_POST["comment"],
-        ]);
         Session::addMessageAfterRedirect(__('Successful update'), true, INFO);
         Html::back();
         return;

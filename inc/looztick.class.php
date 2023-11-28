@@ -72,9 +72,9 @@ class PluginLooztickLooztick extends CommonDBTM
                 ]
             ];
             $context = stream_context_create($opts);
-            $result = array_merge($result, json_decode(file_get_contents($url, false, $context), true));
+            $result = json_decode(file_get_contents($url, false, $context), true);
             if ($result['control'] != "ok") {
-                break;
+                throw new Exception($result['reason']);
             }
         }
 
@@ -196,6 +196,16 @@ class PluginLooztickLooztick extends CommonDBTM
                             'value' => $this->fields['id'],
                             'name' => 'api_key',
                             'disabled' => true,
+                        ],
+                        'activated' => [
+                            'type' => 'hidden',
+                            'value' => $this->fields['activated'],
+                            'name' => 'activated',
+                        ],
+                        'item' => [
+                            'type' => 'hidden',
+                            'value' => $this->fields['item'],
+                            'name' => 'item',
                         ],
                     ]
                 ] 
