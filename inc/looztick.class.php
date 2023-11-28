@@ -161,7 +161,6 @@ class PluginLooztickLooztick extends CommonDBTM
             'Last name' => 'lastname',
             'Mobile' => 'mobile',
             'Second mobile' => 'friendmobile',
-            'Country code' => 'countrycode',
             'Email' => 'email',
         ];
 
@@ -218,15 +217,25 @@ class PluginLooztickLooztick extends CommonDBTM
                 'name' => $name,
             ]];
         }
-        $form['content']['Looztick QR Code']['inputs'] += [__("Comment") => [
-            'name' => 'comment',
-            'type' => 'textarea',
-            'value' => $this->fields['comment'] ?? null,
-            'rows' => 5,
-            'col' => 12,
-            'col_md' => 12,
-            'col_lg' => 12,
-        ]];
+        $form['content']['Looztick QR Code']['inputs'] += [
+            __('Country') => [
+            'type' => 'select',
+            'id' => 'countryCodeDropdown',
+            'searchable' => true,
+            'name' => 'countrycode',
+            'value' => $this->fields['countrycode'] ?? null,
+            'values' => self::getCountryCodes(),
+            ],
+            __("Comment") => [
+                'name' => 'comment',
+                'type' => 'textarea',
+                'value' => $this->fields['comment'] ?? null,
+                'rows' => 5,
+                'col' => 12,
+                'col_md' => 12,
+                'col_lg' => 12,
+            ]
+        ];
 
         include_once GLPI_ROOT . '/ng/form.utils.php';
         renderTwigForm($form);
@@ -300,6 +309,16 @@ class PluginLooztickLooztick extends CommonDBTM
         return "Looztick";
     }
 
+    static function getCountryCodes() {
+        $countryCodes = array_map('str_getcsv', file(Plugin::getPhpDir('looztick') . '/datas/countrycode.csv'));
+        $alpha2Idx = array_search('alpha-2', $countryCodes[0]);
+        $nameIdx = array_search('name', $countryCodes[0]);
+        unset($countryCodes[0]);
+        $alpha2CountryCodes = array_column($countryCodes, $alpha2Idx);
+        $nameCountryCodes = array_column($countryCodes, $nameIdx);
+        return array_combine($alpha2CountryCodes, $nameCountryCodes);
+    }
+
     static function displayTabContentForItem(CommonGLPI $item, $tabnum = 1, $withtemplate = 0)
     {
         $qrcodes = self::getQrCodes(['OR' => [
@@ -327,14 +346,6 @@ class PluginLooztickLooztick extends CommonDBTM
                 }
             });
         JS;
-
-        $countryCodes = array_map('str_getcsv', file(Plugin::getPhpDir('looztick') . '/datas/countrycode.csv'));
-        $alpha2Idx = array_search('alpha-2', $countryCodes[0]);
-        $nameIdx = array_search('name', $countryCodes[0]);
-        unset($countryCodes[0]);
-        $alpha2CountryCodes = array_column($countryCodes, $alpha2Idx);
-        $nameCountryCodes = array_column($countryCodes, $nameIdx);
-        $countryCodes = array_combine($alpha2CountryCodes, $nameCountryCodes);
 
         $form = [
             'action' => Plugin::getWebDir('looztick') . '/front/looztick.form.php',
@@ -399,8 +410,8 @@ class PluginLooztickLooztick extends CommonDBTM
                             'searchable' => true,
                             'name' => 'countrycode',
                             'value' => array_values($currentQrcode)[0]['countrycode'] ?? null,
-                            'values' => $countryCodes,
-                         ],
+                            'values' => self::getCountryCodes(),
+                        ],
                         __("Email") => [
                             'name' => 'email',
                             'id' => 'looztick_email',

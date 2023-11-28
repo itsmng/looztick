@@ -59,7 +59,6 @@ class PluginLooztickConfig extends CommonDBTM {
             'Last name' => 'lastname',
             'Mobile' => 'mobile',
             'Second mobile' => 'friendmobile',
-            'Country code' => 'countrycode',
             'Email' => 'email',
         ];
 
@@ -138,15 +137,24 @@ class PluginLooztickConfig extends CommonDBTM {
                 'name' => $name,
             ]];
         }
-        $form['content']['Default values']['inputs'] += [__("Comment") => [
-            'name' => 'comment',
-            'type' => 'textarea',
-            'value' => $config['comment'] ?? null,
-            'rows' => 5,
-            'col' => 12,
-            'col_md' => 12,
-            'col_lg' => 12,
-        ]];
+        $form['content']['Default values']['inputs'] += [__('Country') => [
+            'type' => 'select',
+            'id' => 'countryCodeDropdown',
+            'searchable' => true,
+            'name' => 'countrycode',
+            'value' => $this->fields['countrycode'] ?? null,
+            'values' => PluginLooztickLooztick::getCountryCodes(),
+            ],
+            __("Comment") => [
+                'name' => 'comment',
+                'type' => 'textarea',
+                'value' => $config['comment'] ?? null,
+                'rows' => 5,
+                'col' => 12,
+                'col_md' => 12,
+                'col_lg' => 12,
+            ]
+        ];
         include_once GLPI_ROOT . "/ng/form.utils.php";
         renderTwigForm($form);
     }
